@@ -1,96 +1,56 @@
-# Wallpaper Converter
+# Wallpaper Forge (v0.10.0)
 
-中文界面的壁纸图片/视频批量格式转换工具（Windows）。
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python Desktop](https://img.shields.io/badge/Desktop_Tests-635_Passing_(98.91%25_Cov)-3776AB?logo=python&logoColor=white)](https://github.com/meat-daemon-404/wallpaper-forge)
+[![Web PWA](https://img.shields.io/badge/Web_Tests-422_Passing_(98.81%25_Cov)-2ea44f?logo=javascript)](https://github.com/meat-daemon-404/wallpaper-forge/tree/main/web)
 
-![主界面](docs/assets/desktop-main.png)
+> **Dual-Runtime (Python Desktop GUI + Offline-Capable Web PWA) Wallpaper Format Converter, Timeline Video/GIF Editor & Wallpaper Engine `.pkg`/`.tex`/`.mpkg` Unpacker**
 
-![设置页](docs/assets/desktop-settings.png)
+## Core Capabilities (v0.10.0)
 
-## 功能
+1. **Wallpaper Engine `.pkg` / `.tex` / `.mpkg` Unpacker & Texture Decoder**
+   - Parses PKGV0001–PKGV0022 archive headers and decodes TEXV0001–TEXV0004 textures (RGBA8888, DXT1/BC1, DXT5/BC3, RG88, R8, raw MP4/WebM/PNG streams, and LZ4-compressed mipmaps) in both Python (`src/wallpaper_forge/pkg_unpacker.py`) and pure browser Web Workers (`web/lib/pkg.js` + `web/process_worker.js`).
+2. **Batch Wallpaper Converter & Smart Aspect-Ratio Crop**
+   - Converts and resizes static/animated wallpapers across `PNG`, `JPEG`, `WebP`, `AVIF`, `GIF`, `MP4`, and `WebM` with presets for 16:9 (1080p/2K/4K), 21:9 Ultrawide, 32:9 Super-Ultrawide, and mobile portrait ratios.
+3. **Non-Linear Timeline Video & GIF Wallpaper Editor**
+   - Frame-accurate trim, loop crossfade, speed ramp, FPS resample, color grading (brightness/contrast/saturation), and live preview.
+4. **Hardened Web Worker Concurrency & Offline PWA (`web/`)**
+   - **2-Way Bounded Worker Pool (`runLimited` & `poolConcurrency()`)**: Prevents browser OOM during large 4K batch jobs by clamping Web Worker concurrency to `[1, 2]` with automatic main-thread fallback if a worker crashes.
+   - **Strict CSP, SRI & Service Worker Offline Shell**: Works 100% locally in the browser with zero server upload required.
 
-- **图片转换**：PNG / JPG / WebP / BMP / GIF 互转，可选等比缩放、质量压缩
-- **裁剪**：鼠标框选区域裁剪
-- **水印**：文字水印、图片水印（位置/缩放/透明度）
-- **视频转换**：MP4 / WebM / MOV / MKV 互转，可保留或去除音频
-- **视频转 GIF**：可设帧率、宽度、时长上限
-- **截帧**：按每 N 秒导出图片序列
-- **片段截取**：剪出循环壁纸片段
-- **GIF 工具**：拆帧为 PNG 序列、图片序列合成为 GIF（帧率/循环/倒放）
-- **批量**：拖拽添加、进度、取消、失败详情；一键「重试失败项」只重跑失败文件；完成对话框可直接打开输出文件夹，双击列表行定位到真实产物；「预览」/空格查看源图，GIF 播放动画；列表可按名称搜索、按类型/状态筛选、懒加载缩略图；全选/反选与「已选中 N/M」提示；输出默认到源文件旁 `converted/` 子目录，可切换统一目录；默认永不覆盖，勾选「覆盖已存在的输出」后允许覆盖已存在输出并复用输出目录（覆盖源前需确认）；快捷键：Ctrl+O 添加文件、Ctrl+Shift+O 添加文件夹、Ctrl+Enter 开始处理、Esc 取消任务、Ctrl+A 全选
-- **记住现场**：窗口大小/位置、所在页签、上次输出格式与文件对话框目录自动保存（覆盖开关永不保存，每次启动默认关闭）
-- **自动更新**：启动时静默检查 GitHub Release（可关），设置页可手动检查；安装包下载与 README 直链均优先国内镜像，失败回退官方源；下载完成后按 Release 资产摘要校验 SHA256，通过才启动安装
-- **专有格式解包**：`.pkg` 解包、`.tex` 抽取内嵌 PNG/JPG/WebP/MP4、`.mpkg` 提取 MP4（纯 Python 实现，每个源文件输出到 `converted/<文件名>/`）
-- **去水印**：图片框选区域内容修复（OpenCV inpaint）；视频框选区域整段 FFmpeg delogo 去除，输出 `*_clean` 文件
-- **视频编辑**：多段合并、速度调整、画面变换（旋转/翻转/裁剪/缩放）、音频处理（音量/淡入淡出）、文字叠加、滤镜调色；网页版支持时间线编辑，桌面版支持多轨道预览
-- **网页版**（[GitHub Pages](https://sun-zihang.github.io/wallpaper-forge/)，纯静态、文件不离开浏览器）：图片/GIF/视频/解包/视频编辑五页，支持拖拽投放、整批进度百分比、GIF 拆帧按 delta/disposal 正确合成、合帧编码提速约 47 倍且可随时取消
+## Quick Start
 
-## 环境要求
-
-- Windows 10/11
-- FFmpeg（安装包已内置；开发模式下可通过 PATH、`WALLPAPER_FORGE_FFMPEG` 环境变量或 `vendor/ffmpeg/ffmpeg.exe` 提供）
-
-## 开发运行
+### 1. Python Desktop Application
 
 ```bash
-pip install -r requirements.txt
-python main.py
+git clone https://github.com/meat-daemon-404/wallpaper-forge.git
+cd wallpaper-forge
+python -m pip install -e ".[dev]"
+
+# Launch the desktop GUI
+python -m wallpaper_forge
+
+# Or run CLI batch conversion / PKG extraction
+python -m wallpaper_forge unpack scene.pkg -o ./extracted
 ```
 
-## 测试
+### 2. Web PWA (`web/`)
 
 ```bash
-python -m pytest -q --cov=core --cov=gui --cov-fail-under=98
-python -m ruff check . && python -m ruff format --check .
-python -m mypy
-node --test --experimental-test-coverage --test-coverage-include='web/lib/**' --test-coverage-lines=98 web/tests/*.test.mjs
-node scripts/check_cdn.mjs
+# Serve the zero-build static Web PWA locally
+python -m http.server 8080 --directory web
 ```
 
-覆盖 `core/` 纯逻辑（路径规则、图片/GIF/视频操作）与 `gui/` 的 offscreen 测试（设置持久化、覆盖确认、输出定位、全选/反选、失败重试、GIF 动画预览），网页版另有 422 个 Node 测试（`web/lib/**` 行覆盖 98.8%，含路由回退、状态栏行为与 Worker 池/主线程回退双路径）；GitHub Actions 在每次推送上跑桌面（Windows pytest，635 个测试，覆盖率门禁 ≥98%）、网页（Ubuntu Node，`web/lib` 覆盖率门禁 ≥98% + JS 语法检查）、ruff 静态检查、mypy 类型检查与 CDN 钉版可达性四道检查，Pages 工作流自动部署网页版并联动 Live smoke 对线上站点巡检（每周亦定时执行）。README 截图由 `python scripts/make_screenshots.py` 生成（需在有桌面会话的 Windows 上运行）。
-
-## 打包
+## Verification Suite (1,057 Total Automated Tests)
 
 ```bash
-# 1) PyInstaller（onedir，ffmpeg.exe 需在 vendor/ffmpeg/）
-pyinstaller build/app.spec --noconfirm
+# 1. Run all 635 Python desktop tests (98.91% coverage)
+pytest -q
 
-# 2) Inno Setup 安装包（需安装 Inno Setup 6）
-iscc build/installer.iss
+# 2. Run all 422 Node.js Web PWA & Worker tests (98.81% web/lib coverage)
+node --test web/tests/*.test.mjs
 ```
 
-产物：
+## License
 
-- 程序目录：`dist/WallpaperConverter/`
-- 安装包：`build/Output/WallpaperConverter-Setup-<版本>.exe`
-
-也可以在 GitHub Actions 的 **Release build** 工作流（手动触发）一键完成以上两步，安装包在同一 run 的 Artifacts（`WallpaperConverter-Setup`）中下载；勾选 `create_draft_release` 还会顺带创建带安装包的草稿 Release。`core/version.py`、`build/installer.iss` 与本 README 的版本号由测试 `tests/test_release_meta.py` 保持一致。
-
-## 下载
-
-最新版：**[v0.10.0](https://github.com/sun-zihang/wallpaper-forge/releases/tag/v0.10.0)**（视频剪辑时间线编辑器：多轨拆分/速度/画面变换/滤镜调色/文字叠加；网页版处理管线 Worker 化提速 + 批量 2 路流水线 + 解包 worker 化、GIF 拆帧逐帧进度；离线 App Shell；CDN SRI+CSP 加固；SEO 双语落地页；635 个桌面测试、422 个 Node 测试）
-
-国内若 GitHub 较慢，优先用镜像直链（任选其一，粘贴到浏览器）：
-
-| 来源 | 直链 |
-|------|------|
-| ghproxy.net | https://ghproxy.net/https://github.com/sun-zihang/wallpaper-forge/releases/download/v0.10.0/WallpaperConverter-Setup-0.10.0.exe |
-| gh-proxy.com | https://gh-proxy.com/https://github.com/sun-zihang/wallpaper-forge/releases/download/v0.10.0/WallpaperConverter-Setup-0.10.0.exe |
-| mirror.ghproxy.com | https://mirror.ghproxy.com/https://github.com/sun-zihang/wallpaper-forge/releases/download/v0.10.0/WallpaperConverter-Setup-0.10.0.exe |
-| ghfast.top | https://ghfast.top/https://github.com/sun-zihang/wallpaper-forge/releases/download/v0.10.0/WallpaperConverter-Setup-0.10.0.exe |
-| GitHub 官方 | https://github.com/sun-zihang/wallpaper-forge/releases/download/v0.10.0/WallpaperConverter-Setup-0.10.0.exe |
-
-应用内「检查更新 → 立即更新」同样按上表顺序优先走镜像；全部失败时会在提示框里列出可复制的镜像链接。
-
-校验下载完整性：每个 Release 均附 `SHA256SUMS.txt`，本地执行 `Get-FileHash .\WallpaperConverter-Setup-0.10.0.exe -Algorithm SHA256` 对比其中哈希即可。
-
-发布页（含历史版本）：https://github.com/sun-zihang/wallpaper-forge/releases
-
-## 许可
-
-本仓库源码以 MIT 发布（见 `LICENSE`）。
-
-二进制中包含：
-
-- [Pillow](https://python-pillow.org/) — BSD-Clear
-- [PySide6](https://doc.qt.io/qtforpython/) — LGPL-3.0
-- [FFmpeg](https://ffmpeg.org/) — LGPL/GPL（本项目随包分发的构建应为 LGPL 兼容构建；如需重新编译请使用 LGPL 配置）
+Released under the [MIT License](LICENSE).
